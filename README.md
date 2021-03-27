@@ -4,3 +4,8 @@ So far all this program does is construct a graph. The ultimate goal is to make 
 
 This will require a mathematical parser to plug in many values for x and y and provide outputs, then making these outputs into vectors and plotting them, and a lot more knowledge about OpenGL than I have now.
 
+Right now I am working on making the x and y axis more visible and bold.
+
+This is the current output of the program on 3/26/2021:
+
+![Basic map](basic_graph.png)
