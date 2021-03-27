@@ -3,7 +3,8 @@
 #include <GLFW/glfw3.h>
 #include<iostream>
 
-#define NUM_LINES 100
+//must be multiples of 4
+#define NUM_LINES 160
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -22,7 +23,7 @@ static unsigned int CompileShader(unsigned int type, const std::string& source) 
 		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
 		char* message = (char*)alloca(length * sizeof(char));
 		glGetShaderInfoLog(id, length, &length, message);
-		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "Vertex" : "fragment") << "shader!" << std::endl;
+		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "Vertex" : (type == GL_FRAGMENT_SHADER ? "fragment" : "geometry")) << "shader!" << std::endl;
 		std::cout << message << std::endl;
 		glDeleteShader(id);
 		return 0;
@@ -31,19 +32,22 @@ static unsigned int CompileShader(unsigned int type, const std::string& source) 
 	return id;
 }
 
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader) {
+static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader) {
 
 	unsigned int program = glCreateProgram();
 	unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
 	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
+	unsigned int gs = CompileShader(GL_GEOMETRY_SHADER, geometryShader);
 
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
+	glAttachShader(program, gs);
 	glLinkProgram(program);
 	glValidateProgram(program);
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
+	glDeleteShader(gs);
 
 	return program;
 }
@@ -77,19 +81,20 @@ int main(void)
 	std::cout << "Your OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
 
 	float * positions = (float*)alloca((NUM_LINES * 2) * sizeof(float));
-	float x_coord = -1.0f;
 
+	float x_coord = -1.0f;
 	for (int i = 0; i < NUM_LINES; i = i + 4) {
 		positions[i] = x_coord;
 		positions[i + 1] = 1.0f; //y coord of top point stays the same always as we move along the x axis
 		positions[i + 2] = x_coord; 
 		positions[i + 3] = -1.0f; //y coord of bottom point stays the same always as we move along x axis
 
+		
 		x_coord += float(8.0f/(float)NUM_LINES);
 
 	}
 
-	
+
 	float y_coord = 1.0f;
 	for (int i = NUM_LINES; i < NUM_LINES * 2; i = i + 4) {
 		positions[i] = -1.0f;
@@ -99,20 +104,8 @@ int main(void)
 
 		
 		y_coord += float(-8.0f/(float)NUM_LINES);
-		std::cout << "hi" << y_coord << std::endl;
 
 	}
-	
-	/*
-	
-	float positions[8] = {
-		 0.0f, -1.0f,
-		 0.0f,  1.0f,
-		 -1.0f, 0.0f,
-		 1.0f, 0.0f,
-		};
-		*/
-
 		
 		unsigned int buffer;
 		glGenBuffers(1, &buffer);
@@ -143,7 +136,33 @@ int main(void)
 			"	color = vec4(1.0, 0.7529, 0.7960, 1.0);\n"
 			"}\n";
 
-		unsigned int shader = CreateShader(vertexShader, fragmentShader);
+		std::string geometryShader =
+			"#version 330 core\n"
+			"\n"
+			"layout(lines) in;\n"
+			"layout(line_strip, max_vertices = 256) out;\n"
+			"\n"
+			"void main()\n"
+			"{\n"
+			"//if we are at the middle x axis\n" 
+			"if ((gl_in[0].gl_Position.xy == vec2(-1.0f, 0.0f) && gl_in[1].gl_Position.xy == vec2(1.0f, 0.0f)) || ((gl_in[0].gl_Position.xy == vec2(1.0f, 0.0f) && gl_in[1].gl_Position.xy == vec2(-1.0f, 0.0f))))\n" 
+			"{\n"
+			"gl_Position = vec4(-1.0f, 0.085f, 0.0f, 1.0f);\n"
+			"EmitVertex();\n"
+			"gl_Position = vec4(1.0f, 0.085f, 0.0f, 1.0f);\n"
+			"EmitVertex();\n"
+			"}\n"
+		
+			"gl_Position = gl_in[0].gl_Position;\n"
+			"EmitVertex();\n"
+			"gl_Position = gl_in[1].gl_Position;\n"
+			"EmitVertex();\n"
+			"EndPrimitive();\n"
+			"}\n";
+
+		unsigned int shader = CreateShader(vertexShader, fragmentShader, geometryShader);
+		glUniform1f(glGetUniformLocation(shader, "x_coord"), int(NUM_LINES / 2));
+		glUniform1f(glGetUniformLocation(shader, "y_coord"), int(NUM_LINES / 2));
 		glUseProgram(shader);
 	
 
