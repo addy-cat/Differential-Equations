@@ -6,6 +6,6 @@ This will require a mathematical parser to plug in many values for x and y and p
 
 Right now I am working on making the x and y axis more visible and bold.
 
-This is the current output of the program on 3/26/2021:
+This is the current output of the program as of 3/26/2021:
 
 ![Basic map](basic_graph.png)
