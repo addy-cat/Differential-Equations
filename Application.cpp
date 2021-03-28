@@ -4,7 +4,7 @@
 #include<iostream>
 
 //must be multiples of 4
-#define NUM_LINES 160
+#define NUM_LINES 200
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -63,7 +63,7 @@ int main(void)
 
 
 	/* Create a windowed mode window and its OpenGL context */
-	window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+	window = glfwCreateWindow(2160, 2160, "Hello World", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -86,11 +86,13 @@ int main(void)
 	for (int i = 0; i < NUM_LINES; i = i + 4) {
 		positions[i] = x_coord;
 		positions[i + 1] = 1.0f; //y coord of top point stays the same always as we move along the x axis
-		positions[i + 2] = x_coord; 
+		positions[i + 2] = x_coord;
 		positions[i + 3] = -1.0f; //y coord of bottom point stays the same always as we move along x axis
 
-		
-		x_coord += float(8.0f/(float)NUM_LINES);
+
+		x_coord += float(8.0f / (float)NUM_LINES);
+
+		std::cout << x_coord << std::endl;
 
 	}
 
@@ -102,67 +104,140 @@ int main(void)
 		positions[i + 2] = 1.0f;
 		positions[i + 3] = y_coord;
 
-		
-		y_coord += float(-8.0f/(float)NUM_LINES);
+
+		y_coord += float(-8.0f / (float)NUM_LINES);
 
 	}
+	
+	unsigned int buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), positions, GL_STATIC_DRAW);
+
+	//need to enable 
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+
+	std::string vertexShader =
+		"#version 330 core\n"
+		"\n"
+		"layout(location = 0) in vec4 position;\n"
+		"\n"
+		"void main()\n"
+		"{\n"
+		"	gl_Position = position;\n"
+		"}\n";
+
+	std::string fragmentShader =
+		"#version 330 core\n"
+		"\n"
+		"layout(location = 0) out vec4 color;\n"
+		"\n"
+		"void main()\n"
+		"{\n"
+		"	color = vec4(1.0, 0.7529, 0.7960, 1.0);\n"
+		"}\n";
+
+	std::string geometryShader =
+		"#version 330 core\n"
+		"\n"
+		"layout(lines) in;\n"
+		"layout(line_strip, max_vertices = 256) out;\n"
+		"\n"
+
+		"uniform vec2 coord_one;\n"
+		"uniform vec2 coord_two;\n"
+
+		"void main()\n"
+		"{\n"
+		"int x = int(1000 * gl_in[0].gl_Position.x);\n"
+		"int y = int(1000 * gl_in[0].gl_Position.y);\n"
+		"//if we are at the middle x axis\n"
+		"if(x == 0 && y != 0)\n"
+		"{\n"
+		"gl_Position = gl_in[0].gl_Position + vec4(0.00075f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.00075f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.001f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.001f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.00199f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.00199f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0023f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0023f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0037f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0037f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0045f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0045f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0055f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0055f, 0.0f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+
+
+		"} else if (y == 0 && x != 0)\n"
+		"{\n"
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.00075f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.00075f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.001f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.001f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.00199f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.00199f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.0033f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.0033f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.0042f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.0042f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+		"gl_Position = gl_in[0].gl_Position + vec4(0.0f, 0.0052f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position + vec4(0.0f, 0.0052f, 0.0f, 0.0f);\n"
+		"EmitVertex();\n"
+
+
+
+		"}\n"
 		
-		unsigned int buffer;
-		glGenBuffers(1, &buffer);
-		glBindBuffer(GL_ARRAY_BUFFER, buffer);
-		glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), positions, GL_STATIC_DRAW);
-
-		//need to enable 
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
-		std::string vertexShader =
-			"#version 330 core\n"
-			"\n"
-			"layout(location = 0) in vec4 position;\n"
-			"\n"
-			"void main()\n"
-			"{\n"
-			"	gl_Position = position;\n"
-			"}\n";
-
-		std::string fragmentShader =
-			"#version 330 core\n"
-			"\n"
-			"layout(location = 0) out vec4 color;\n"
-			"\n"
-			"void main()\n"
-			"{\n"
-			"	color = vec4(1.0, 0.7529, 0.7960, 1.0);\n"
-			"}\n";
-
-		std::string geometryShader =
-			"#version 330 core\n"
-			"\n"
-			"layout(lines) in;\n"
-			"layout(line_strip, max_vertices = 256) out;\n"
-			"\n"
-			"void main()\n"
-			"{\n"
-			"//if we are at the middle x axis\n" 
-			"if ((gl_in[0].gl_Position.xy == vec2(-1.0f, 0.0f) && gl_in[1].gl_Position.xy == vec2(1.0f, 0.0f)) || ((gl_in[0].gl_Position.xy == vec2(1.0f, 0.0f) && gl_in[1].gl_Position.xy == vec2(-1.0f, 0.0f))))\n" 
-			"{\n"
-			"gl_Position = vec4(-1.0f, 0.085f, 0.0f, 1.0f);\n"
-			"EmitVertex();\n"
-			"gl_Position = vec4(1.0f, 0.085f, 0.0f, 1.0f);\n"
-			"EmitVertex();\n"
-			"}\n"
-		
-			"gl_Position = gl_in[0].gl_Position;\n"
-			"EmitVertex();\n"
-			"gl_Position = gl_in[1].gl_Position;\n"
-			"EmitVertex();\n"
-			"EndPrimitive();\n"
-			"}\n";
+		"gl_Position = gl_in[0].gl_Position;\n"
+		"EmitVertex();\n"
+		"gl_Position = gl_in[1].gl_Position;\n"
+		"EmitVertex();\n"
+		"EndPrimitive();\n"
+		"}\n";
 
 		unsigned int shader = CreateShader(vertexShader, fragmentShader, geometryShader);
-		glUniform1f(glGetUniformLocation(shader, "x_coord"), int(NUM_LINES / 2));
-		glUniform1f(glGetUniformLocation(shader, "y_coord"), int(NUM_LINES / 2));
+		glUniform2f(glGetUniformLocation(shader, "coord_one"), float(int(NUM_LINES / 2)), 1.0f);
+		glUniform2f(glGetUniformLocation(shader, "coord_two"), float(int(NUM_LINES / 2)), 1.0f);
 		glUseProgram(shader);
 	
 
