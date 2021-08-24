@@ -8,4 +8,4 @@ Right now I am working on figuring out a math parser.
 
 This is the current output of the program as of 3/27/2021:
 
-![Basic map](basic_graph.png)
+![Basic map](Untitled.png)
