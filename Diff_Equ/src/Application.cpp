@@ -1,13 +1,17 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <string>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "exprtk.hpp"
 
 //must be multiples of 4
 #define NUM_LINES 200
+exprtk::expression<float> expression_x;
+exprtk::expression<float> expression_y;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -53,6 +57,26 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
 	glDeleteShader(gs);
 
 	return program;
+}
+
+
+//Equation x & y are equations while x and y are variables in equations
+int set_diff_eq(std::string Equation_x, std::string Equation_y, float x, float y) {
+
+	//const std::string expression_string_1 = Equation_1;
+	//const std::string expression_string_2 = Equation_2;
+
+	exprtk::symbol_table<float> symbol_table;
+	symbol_table.add_variable("x", x);
+	symbol_table.add_variable("y", y);
+
+	expression_x.register_symbol_table(symbol_table);
+	expression_y.register_symbol_table(symbol_table);
+
+	exprtk::parser<float> parser;
+
+	return parser.compile(Equation_x, expression_x) && parser.compile(Equation_y, expression_y);
+
 }
 
 int main(void)
@@ -108,17 +132,6 @@ int main(void)
 		y_coord += float(-8.0f / (float)NUM_LINES);
 		std::cout << y_coord << std::endl;
 	}
-
-	//make a test line/ equation before introducing math parser
-	float* test_x1 = (float*)malloc(sizeof(float));
-	*test_x1 = 0.3f;
-	float* test_y1 = (float*)malloc(sizeof(float));
-	*test_y1 = 0.5f;
-	float* test_x2 = (float*)malloc(sizeof(float));
-	*test_x2 = 0.5f;
-	float* test_y2 = (float*)malloc(sizeof(float));
-	*test_y2 = 1.0f;
-	float arr[4] = { *test_x1, *test_y1, *test_x2, *test_y2 };
 
 	unsigned int buffer;
 	glGenBuffers(1, &buffer);
@@ -262,8 +275,8 @@ int main(void)
 		glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), positions, GL_STATIC_DRAW);
 		glDrawArrays(GL_LINES, 0, NUM_LINES);
 		//Render the equation/ line:
-		glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), arr, GL_STATIC_DRAW);
-		glDrawArrays(GL_LINES, 0, NUM_LINES);
+		//glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), arr, GL_STATIC_DRAW);
+		//glDrawArrays(GL_LINES, 0, NUM_LINES);
 
 		//render UI
 		ImGui_ImplOpenGL3_NewFrame();
@@ -273,21 +286,22 @@ int main(void)
 		//Button
 		ImGui::Begin("Vector field generator");
 		//Input field for first equation
-		char Equation_1[256];
-		memset(Equation_1, 0, sizeof(Equation_1));
-		ImGuiInputTextFlags input_text_flags_1 = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
-		ImGui::InputText("Differential Equation 1", Equation_1, IM_ARRAYSIZE(Equation_1), input_text_flags_1, 0, 0);
+		char Equation_x[256];
+		memset(Equation_x, 0, sizeof(Equation_x));
+		
+		ImGui::InputText("Differential Equation 1", Equation_x, IM_ARRAYSIZE(Equation_x));
 
 		//Input field for second equation
-		char Equation_2[256];
-		memset(Equation_2, 0, sizeof(Equation_2));
-		ImGuiInputTextFlags input_text_flags_2 = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
-		ImGui::InputText("Differential Equation 2", Equation_2, IM_ARRAYSIZE(Equation_2), input_text_flags_2, 0, 0);
+		char Equation_y[256];
+		memset(Equation_y, 0, sizeof(Equation_y));
+		
+		ImGui::InputText("Differential Equation 2", Equation_y, IM_ARRAYSIZE(Equation_y));
 
+		float x = 0;
+		float y = 0;
+		set_diff_eq(Equation_x, Equation_y, x, y);
 
 		ImGui::SetWindowFontScale(2.0f);
-
-
 		ImGui::Button("Graph", ImVec2(130.0f, 50.0f));
 		
 		ImGui::End();
@@ -302,11 +316,6 @@ int main(void)
 		glfwPollEvents();
 	}
 
-	free(test_x1);
-	free(test_y1);
-	free(test_x2);
-	free(test_y2);
-
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
@@ -314,6 +323,7 @@ int main(void)
 
 	return 0;
 }
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
