@@ -105,15 +105,17 @@ bool set_equations_for_ui(char* hold_x, char* hold_y, bool render_elems) {
 	return false;
 }
 
+//eulers method for finding vectors
 void graph_equations(float* vector_positions) {
-	float x = -200;
-	float y = -200;
+	float x = 0;
+	float y = 0;
 
-	for (int i = NUM_LINES; i < NUM_LINES * 2; i = i + 2) {
+	for (int i = NUM_LINES; i < 200; i = i + 2) {
 		vector_positions[i] = x;
 		vector_positions[i + 1] = y;
-		x += expression_x.value() * 0.001;
-		y += expression_y.value() * 0.001;
+		//step size is 0.005
+		x += expression_x.value() * 0.005;
+		y += expression_y.value() * 0.005;
 	}	
 }
 
@@ -296,11 +298,6 @@ int main(void)
 	glUniform2f(glGetUniformLocation(shader, "coord_one"), float(int(NUM_LINES / 2)), 1.0f);
 	glUniform2f(glGetUniformLocation(shader, "coord_two"), float(int(NUM_LINES / 2)), 1.0f);
 	glUseProgram(shader);
-
-
-
-
-
 	
 	unsigned int buffer_vectors;
 	glGenBuffers(1, &buffer_vectors);
@@ -318,9 +315,6 @@ int main(void)
 	glUniform2f(glGetUniformLocation(shaderVectors, "coord_one"), float(int(NUM_LINES / 2)), 1.0f);
 	glUniform2f(glGetUniformLocation(shaderVectors, "coord_two"), float(int(NUM_LINES / 2)), 1.0f);
 	glUseProgram(shaderVectors);
-
-
-
 
 
 	ImGui::CreateContext();
