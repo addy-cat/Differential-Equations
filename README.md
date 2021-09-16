@@ -5,4 +5,5 @@ The goal is to make something like this: https://homepages.bluffton.edu/~nesterd
 
 Uses Exprtk for mathematical parsing, and ImGui for user interface, and OpenGL (using C++) for graphics.
 
+![alt text](basic_graph.png)
 
