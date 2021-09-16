@@ -59,12 +59,27 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
 	return program;
 }
 
+static unsigned int CreateShaderVectors(const std::string& vertexShader, const std::string& fragmentShader) {
+
+	unsigned int program_vectors = glCreateProgram();
+	unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
+	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
+
+	glAttachShader(program_vectors, vs);
+	glAttachShader(program_vectors, fs);
+	glLinkProgram(program_vectors);
+	glValidateProgram(program_vectors);
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+
+	return program_vectors;
+}
+
+
 
 //Equation x & y are equations while x and y are variables in equations
 int set_diff_eq(std::string Equation_x, std::string Equation_y, float x, float y) {
-
-	//const std::string expression_string_1 = Equation_1;
-	//const std::string expression_string_2 = Equation_2;
 
 	exprtk::symbol_table<float> symbol_table;
 	symbol_table.add_variable("x", x);
@@ -76,7 +91,30 @@ int set_diff_eq(std::string Equation_x, std::string Equation_y, float x, float y
 	exprtk::parser<float> parser;
 
 	return parser.compile(Equation_x, expression_x) && parser.compile(Equation_y, expression_y);
+}
 
+bool set_equations_for_ui(char* hold_x, char* hold_y, bool render_elems) {
+
+	if (render_elems) {
+		ImGui::TextUnformatted("Equations: ");
+		ImGui::TextUnformatted(hold_x);
+		ImGui::TextUnformatted(hold_y);
+		return true;
+	}
+	
+	return false;
+}
+
+void graph_equations(float* vector_positions) {
+	float x = -200;
+	float y = -200;
+
+	for (int i = NUM_LINES; i < NUM_LINES * 2; i = i + 2) {
+		vector_positions[i] = x;
+		vector_positions[i + 1] = y;
+		x += expression_x.value() * 0.001;
+		y += expression_y.value() * 0.001;
+	}	
 }
 
 int main(void)
@@ -88,7 +126,7 @@ int main(void)
 		return -1;
 
 	/* Create a windowed mode window and its OpenGL context */
-	window = glfwCreateWindow(2160, 2160, "Hello World", NULL, NULL);
+	window = glfwCreateWindow(2160, 2160, "Vector field generator", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -107,7 +145,7 @@ int main(void)
 
 	//allocate how many lines? we are allowed to render
 	float* positions = (float*)alloca((NUM_LINES * 2) * sizeof(float));
-	//float* equation_positions = (float*)alloca((NUM_LINES * 2) * sizeof(float));
+	float* vector_positions = (float*)alloca((NUM_LINES * 2) * sizeof(float));
 
 	
 	//draw y lines 
@@ -121,7 +159,6 @@ int main(void)
 		std::cout << x_coord << std::endl;
 	}
 
-	
 	//draw x lines 
 	float y_coord = 1.0f;
 	for (int i = NUM_LINES; i < NUM_LINES * 2; i = i + 4) {
@@ -173,6 +210,7 @@ int main(void)
 		"{\n"
 		"int x = int(1000 * gl_in[0].gl_Position.x);\n"
 		"int y = int(1000 * gl_in[0].gl_Position.y);\n"
+
 
 		"//if we are at the middle x axis\n"
 		"if(x == 0 && y != 0)\n"
@@ -260,11 +298,39 @@ int main(void)
 	glUseProgram(shader);
 
 
+
+
+
+	
+	unsigned int buffer_vectors;
+	glGenBuffers(1, &buffer_vectors);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_vectors);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+	std::string vertexShaderVectors =
+		"void main()\n"
+		"{\n"
+		"	gl_Position = position;\n"
+		"}\n";
+	std::string fragmentShaderVectors =
+		"void main() { color = vec4(1,1,0,1); }\n";
+	unsigned int shaderVectors = CreateShaderVectors(vertexShaderVectors, fragmentShaderVectors);
+	glUniform2f(glGetUniformLocation(shaderVectors, "coord_one"), float(int(NUM_LINES / 2)), 1.0f);
+	glUniform2f(glGetUniformLocation(shaderVectors, "coord_two"), float(int(NUM_LINES / 2)), 1.0f);
+	glUseProgram(shaderVectors);
+
+
+
+
+
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui::StyleColorsDark();
+	bool render_elems = false;
 
+	float x = -200;
+	float y = -200;
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
@@ -274,9 +340,10 @@ int main(void)
 		glClear(GL_COLOR_BUFFER_BIT);
 		glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), positions, GL_STATIC_DRAW);
 		glDrawArrays(GL_LINES, 0, NUM_LINES);
-		//Render the equation/ line:
-		//glBufferData(GL_ARRAY_BUFFER, (NUM_LINES * 2) * sizeof(float), arr, GL_STATIC_DRAW);
-		//glDrawArrays(GL_LINES, 0, NUM_LINES);
+		
+		//Render the vectors:
+		glBufferSubData(GL_ARRAY_BUFFER, 0, (NUM_LINES * 2) * sizeof(float), vector_positions);
+		glDrawArrays(GL_LINES, 0, NUM_LINES);
 
 		//render UI
 		ImGui_ImplOpenGL3_NewFrame();
@@ -285,25 +352,33 @@ int main(void)
 
 		//Button
 		ImGui::Begin("Vector field generator");
+
 		//Input field for first equation
 		char Equation_x[256];
 		memset(Equation_x, 0, sizeof(Equation_x));
 		
-		ImGui::InputText("Differential Equation 1", Equation_x, IM_ARRAYSIZE(Equation_x));
+		ImGui::InputText("dx", Equation_x, IM_ARRAYSIZE(Equation_x));
+		char* hold_x = Equation_x;
 
 		//Input field for second equation
 		char Equation_y[256];
 		memset(Equation_y, 0, sizeof(Equation_y));
 		
-		ImGui::InputText("Differential Equation 2", Equation_y, IM_ARRAYSIZE(Equation_y));
-
-		float x = 0;
-		float y = 0;
-		set_diff_eq(Equation_x, Equation_y, x, y);
+		ImGui::InputText("dy", Equation_y, IM_ARRAYSIZE(Equation_y));
+		char* hold_y = Equation_y;
 
 		ImGui::SetWindowFontScale(2.0f);
-		ImGui::Button("Graph", ImVec2(130.0f, 50.0f));
+
+		set_diff_eq(Equation_x, Equation_y, x, y);
+
+		set_equations_for_ui(hold_x, hold_y, render_elems);
 		
+		if (ImGui::Button("Graph", ImVec2(130.0f, 50.0f))) {
+			render_elems = true;
+			
+		}
+		graph_equations(vector_positions);
+	
 		ImGui::End();
 		ImGui::Render();
 
